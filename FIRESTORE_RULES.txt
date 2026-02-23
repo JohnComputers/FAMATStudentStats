@@ -1,0 +1,69 @@
+// ============================================================
+// FAMAT Analytics — Firestore Security Rules
+// Paste this into: Firebase Console → Firestore → Rules
+// ============================================================
+//
+// Key principles:
+//  - Only authenticated users (teachers) can access data
+//  - Each teacher can only read/write their own data
+//  - All collections require authentication
+//  - Public access is denied by default
+//
+// ============================================================
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper: is the user logged in?
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper: is the requesting user the owner of this doc?
+    function isOwner(teacherId) {
+      return request.auth.uid == teacherId;
+    }
+
+    // Helper: does the incoming data belong to the current user?
+    function isOwnData() {
+      return request.resource.data.teacherId == request.auth.uid;
+    }
+
+    // ── Students Collection ──────────────────────────────────
+    match /students/{studentId} {
+      // Read: only the teacher who created the student
+      allow read: if isAuthenticated() && isOwner(resource.data.teacherId);
+
+      // Create: authenticated teachers only, must set their own teacherId
+      allow create: if isAuthenticated() && isOwnData();
+
+      // Update: only the owning teacher
+      allow update: if isAuthenticated() && isOwner(resource.data.teacherId) && isOwnData();
+
+      // Delete: only the owning teacher
+      allow delete: if isAuthenticated() && isOwner(resource.data.teacherId);
+    }
+
+    // ── Tests Collection ─────────────────────────────────────
+    match /tests/{testId} {
+      allow read:   if isAuthenticated() && isOwner(resource.data.teacherId);
+      allow create: if isAuthenticated() && isOwnData();
+      allow update: if isAuthenticated() && isOwner(resource.data.teacherId) && isOwnData();
+      allow delete: if isAuthenticated() && isOwner(resource.data.teacherId);
+    }
+
+    // ── Results Collection ───────────────────────────────────
+    match /results/{resultId} {
+      allow read:   if isAuthenticated() && isOwner(resource.data.teacherId);
+      allow create: if isAuthenticated() && isOwnData();
+      allow update: if isAuthenticated() && isOwner(resource.data.teacherId) && isOwnData();
+      allow delete: if isAuthenticated() && isOwner(resource.data.teacherId);
+    }
+
+    // Deny all other access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

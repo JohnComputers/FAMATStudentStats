@@ -1,0 +1,15 @@
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor directories
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# No node_modules - pure vanilla JS
+# If you add a build step in future, add:
+# node_modules/
+# dist/
